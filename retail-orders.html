@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Retail Orders — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+  .thead,.row{ grid-template-columns:40px 84px 150px 158px 118px 128px 144px 106px 78px 54px; }
+  @media (max-width:900px){
+    .thead,.row{ grid-template-columns:32px 70px 130px 1fr 1fr 44px; }
+    .thead > :nth-child(4),.row > :nth-child(4),.thead > :nth-child(5),.row > :nth-child(5),.thead > :nth-child(7),.row > :nth-child(7){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main>
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1>Retail Orders</h1>
+      <div class="crumbs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>Sales</span><span class="sep">/</span><span class="cur">Retail Orders</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <div class="check" id="selectAll"></div>
+      <div class="bulk-btn" id="bulkBtn">Bulk actions
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="count-info" id="countInfo"></div>
+      <div class="spacer"></div>
+      <div class="tool-link" id="searchToggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+      </div>
+      <div class="search-wrap" id="searchWrap" hidden>
+        <input id="searchInput" placeholder="Order no. or customer…" autocomplete="off">
+        <div class="search-clear" id="searchClear">&#10005;</div>
+      </div>
+      <div class="filter-btn" id="filterBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filter
+      </div>
+    </div>
+
+    <div class="thead">
+      <div></div>
+      <div>Order No.</div>
+      <div class="th" data-sort="srId">Related SR/Appt<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="serviceDateTime">Service Date/Time<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="customer">Customer<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="orderStatus">Order Status<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="paymentStatus">Payment Status<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="orderDate">Order Date<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="th" data-sort="total">Total<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div>Actions</div>
+    </div>
+
+    <div id="rows"></div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'retail');
+
+  var TABS = [
+    { key:'pending', label:'Pending', count:30 },
+    { key:'confirmed', label:'Confirmed', count:5 },
+    { key:'completed', label:'Completed', count:10 },
+    { key:'cancelled', label:'Cancelled', count:3 },
+    { key:'all', label:'All Orders', count:48 },
+  ];
+  var DATA = [
+    { id:'1', orderNo:'ORD1234', srId:'SR000048', srSub:'Awaiting Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Michelle Tay', orderStatus:'Pending', paymentStatus:'Fully Paid', orderDate:'12 Feb 2026', total:2060 },
+    { id:'2', orderNo:'ORD1235', srId:'B000049', srSub:'Pending Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Michelle Tay', orderStatus:'Pending', paymentStatus:'Fully Paid', orderDate:'12 Feb 2026', total:1180 },
+    { id:'3', orderNo:'ORD1236', srId:'SR000050', srSub:'Pending', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Wei Ling Koh', orderStatus:'Confirmed', paymentStatus:'Partially Paid', orderDate:'12 Feb 2026', total:3400 },
+    { id:'4', orderNo:'ORD1237', srId:'B000051', srSub:'Confirmed', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Wei Ling Koh', orderStatus:'Confirmed', paymentStatus:'Fully Paid', orderDate:'12 Feb 2026', total:960 },
+    { id:'5', orderNo:'ORD1238', srId:'SR000052', srSub:'Awaiting Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Rajesh Kumar', orderStatus:'Completed', paymentStatus:'Fully Paid', orderDate:'12 Feb 2026', total:2060 },
+    { id:'6', orderNo:'ORD1239', srId:'B000063', srSub:'Pending Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Rajesh Kumar', orderStatus:'Completed', paymentStatus:'Fully Paid', orderDate:'12 Feb 2026', total:2750 },
+    { id:'7', orderNo:'ORD1240', srId:'B000064', srSub:'Pending Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Amanda Lim', orderStatus:'Cancelled', paymentStatus:'Overpaid', orderDate:'12 Feb 2026', total:2060 },
+    { id:'8', orderNo:'ORD1241', srId:'B000065', srSub:'Pending Approval', serviceDateTime:'28 Jun 2026, 10:03 PM', customer:'Amanda Lim', orderStatus:'Cancelled', paymentStatus:'Refunded', orderDate:'12 Feb 2026', total:840 },
+  ];
+  var PER_PAGE = 5;
+  var badgeClass = function(s){ return s.toLowerCase().replace(/\s+/g,''); };
+
+  var state = { activeTab:'all', search:'', showSearch:false, openMenu:null, checked:{}, page:1, sortKey:null, sortDir:'asc', bulkModalOpen:false, bulkStatus:'pending' };
+
+  function getFiltered(){
+    var list = DATA.slice();
+    if(state.activeTab !== 'all') list = list.filter(function(d){ return d.orderStatus.toLowerCase() === state.activeTab; });
+    if(state.search.trim()){
+      var q = state.search.trim().toLowerCase();
+      list = list.filter(function(d){ return d.orderNo.toLowerCase().indexOf(q) > -1 || d.customer.toLowerCase().indexOf(q) > -1; });
+    }
+    if(state.sortKey){
+      var key = state.sortKey, dir = state.sortDir;
+      list.sort(function(a,b){
+        var av = a[key], bv = b[key], cmp;
+        if(typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+        else cmp = String(av).localeCompare(String(bv));
+        return dir === 'asc' ? cmp : -cmp;
+      });
+    }
+    return list;
+  }
+
+  function render(){
+    document.getElementById('tabs').innerHTML = TABS.map(function(t){
+      var on = state.activeTab === t.key;
+      return '<div class="tab' + (on?' on':'') + '" data-tab="' + t.key + '">' + NvsChrome.esc(t.label) + '<span class="count">' + t.count + '</span></div>';
+    }).join('');
+
+    var filtered = getFiltered();
+    var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    if(state.page > totalPages) state.page = totalPages;
+    var page = state.page;
+    var pageSlice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+
+    var allChecked = pageSlice.length > 0 && pageSlice.every(function(d){ return state.checked[d.id]; });
+    var someChecked = pageSlice.some(function(d){ return state.checked[d.id]; });
+    var checkedCount = Object.keys(state.checked).filter(function(k){ return state.checked[k]; }).length;
+
+    var sel = document.getElementById('selectAll');
+    sel.className = 'check' + (allChecked ? ' on' : (someChecked ? ' ind' : ''));
+    sel.innerHTML = allChecked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+
+    var bulkBtn = document.getElementById('bulkBtn');
+    bulkBtn.style.background = checkedCount > 0 ? 'var(--navy)' : '#B7C4DA';
+    bulkBtn.style.cursor = checkedCount > 0 ? 'pointer' : 'default';
+
+    var from = filtered.length === 0 ? 0 : (page-1)*PER_PAGE + 1;
+    var to = Math.min(page*PER_PAGE, filtered.length);
+    document.getElementById('countInfo').textContent = 'Showing ' + from + '–' + to + ' of ' + filtered.length;
+
+    document.querySelectorAll('.th').forEach(function(el){
+      var key = el.dataset.sort;
+      el.classList.toggle('active', state.sortKey === key);
+      el.classList.toggle('desc', state.sortKey === key && state.sortDir === 'desc');
+    });
+
+    if(pageSlice.length === 0){
+      document.getElementById('rows').innerHTML = '<div class="empty-row">No matching records found</div>';
+    } else {
+      document.getElementById('rows').innerHTML = pageSlice.map(function(d){
+        var checked = !!state.checked[d.id];
+        var menuOpen = state.openMenu === d.id;
+        return '<div class="row">' +
+          '<div class="check' + (checked?' on':'') + '" data-check="' + d.id + '">' + (checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>' +
+          '<div class="order-no" data-view="' + d.id + '">' + NvsChrome.esc(d.orderNo) + '</div>' +
+          '<div><div class="sr-id">' + NvsChrome.esc(d.srId) + '</div><div class="sr-sub">' + NvsChrome.esc(d.srSub) + '</div></div>' +
+          '<div>' + NvsChrome.esc(d.serviceDateTime) + '</div>' +
+          '<div class="cust">' + NvsChrome.esc(d.customer) + '</div>' +
+          '<div><span class="badge ' + badgeClass(d.orderStatus) + '">' + NvsChrome.esc(d.orderStatus) + '</span></div>' +
+          '<div><span class="badge ' + badgeClass(d.paymentStatus) + '">' + NvsChrome.esc(d.paymentStatus) + '</span></div>' +
+          '<div>' + NvsChrome.esc(d.orderDate) + '</div>' +
+          '<div class="num">' + NvsChrome.fmtMoney(d.total) + '</div>' +
+          '<div class="more-wrap">' +
+            '<div class="more-btn" data-more="' + d.id + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>' +
+            (menuOpen ? '<div class="menu"><div class="menu-item" data-view="' + d.id + '">View</div><div class="menu-item" data-resend="' + d.id + '">Resend Tax Invoice</div></div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    var pagHtml = '<div class="page-nav" data-page="prev"' + (page<=1?' disabled':'') + '>' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Prev</div>';
+    for(var i=1;i<=totalPages;i++) pagHtml += '<div class="page-num' + (page===i?' on':'') + '" data-page="' + i + '">' + i + '</div>';
+    pagHtml += '<div class="page-nav" data-page="next"' + (page>=totalPages?' disabled':'') + '>Next<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
+    document.getElementById('pagination').innerHTML = pagHtml;
+
+    document.getElementById('searchWrap').hidden = !state.showSearch;
+    var si = document.getElementById('searchInput');
+    if(document.activeElement !== si) si.value = state.search;
+
+    document.getElementById('modalRoot').innerHTML = state.bulkModalOpen ? renderModal() : '';
+
+    bindEvents(checkedCount);
+  }
+
+  function renderModal(){
+    return '<div class="modal-backdrop" id="modalBackdrop"><div class="modal">' +
+      '<h2>Update Status</h2>' +
+      '<div class="field-label">Status<span class="req">*</span></div>' +
+      '<select class="status-select" id="bulkStatusSelect" style="margin-bottom:24px">' +
+        '<option value="pending"' + (state.bulkStatus==='pending'?' selected':'') + '>Pending</option>' +
+        '<option value="confirmed"' + (state.bulkStatus==='confirmed'?' selected':'') + '>Confirmed</option>' +
+        '<option value="completed"' + (state.bulkStatus==='completed'?' selected':'') + '>Completed</option>' +
+        '<option value="cancelled"' + (state.bulkStatus==='cancelled'?' selected':'') + '>Cancelled</option>' +
+      '</select>' +
+      '<div class="modal-actions"><div class="btn-text" id="modalCancel">Cancel</div><div class="btn-confirm" id="modalConfirm">Update</div></div>' +
+    '</div></div>';
+  }
+
+  function bindEvents(checkedCount){
+    document.querySelectorAll('[data-tab]').forEach(function(el){
+      el.addEventListener('click', function(){ state.activeTab = el.dataset.tab; state.page = 1; state.openMenu = null; render(); });
+    });
+    document.querySelectorAll('[data-check]').forEach(function(el){
+      el.addEventListener('click', function(){ state.checked[el.dataset.check] = !state.checked[el.dataset.check]; render(); });
+    });
+    document.getElementById('selectAll').addEventListener('click', function(){
+      var filtered = getFiltered();
+      var pageSlice = filtered.slice((state.page-1)*PER_PAGE, state.page*PER_PAGE);
+      var allChecked = pageSlice.length > 0 && pageSlice.every(function(d){ return state.checked[d.id]; });
+      pageSlice.forEach(function(d){ state.checked[d.id] = !allChecked; });
+      render();
+    });
+    document.querySelectorAll('[data-more]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); state.openMenu = state.openMenu === el.dataset.more ? null : el.dataset.more; render(); });
+    });
+    document.querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.view; });
+        window.location.href = 'retail-order-detail.html?id=' + encodeURIComponent(d ? d.id : '');
+      });
+    });
+    document.querySelectorAll('[data-resend]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.resend; });
+        state.openMenu = null; render();
+        NvsChrome.toast('Tax invoice resent for ' + (d ? d.orderNo : ''));
+      });
+    });
+    document.querySelectorAll('.th').forEach(function(el){
+      el.addEventListener('click', function(){
+        var key = el.dataset.sort;
+        if(state.sortKey === key) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        else { state.sortKey = key; state.sortDir = 'asc'; }
+        render();
+      });
+    });
+    document.querySelectorAll('[data-page]').forEach(function(el){
+      el.addEventListener('click', function(){
+        if(el.hasAttribute('disabled')) return;
+        var v = el.dataset.page;
+        var filtered = getFiltered();
+        var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+        if(v === 'prev') state.page = Math.max(1, state.page - 1);
+        else if(v === 'next') state.page = Math.min(totalPages, state.page + 1);
+        else state.page = parseInt(v, 10);
+        render();
+      });
+    });
+    document.getElementById('searchToggle').addEventListener('click', function(){
+      state.showSearch = !state.showSearch; render();
+      if(state.showSearch) document.getElementById('searchInput').focus();
+    });
+    document.getElementById('searchInput').addEventListener('input', function(e){
+      state.search = e.target.value; state.page = 1; render();
+      var si = document.getElementById('searchInput');
+      si.focus(); si.setSelectionRange(si.value.length, si.value.length);
+    });
+    document.getElementById('searchClear').addEventListener('click', function(){ state.search = ''; state.showSearch = false; state.page = 1; render(); });
+    document.getElementById('filterBtn').addEventListener('click', function(){ NvsChrome.toast('Filter panel coming soon'); });
+    document.getElementById('bulkBtn').addEventListener('click', function(){ if(checkedCount === 0) return; state.bulkModalOpen = true; render(); });
+    var backdrop = document.getElementById('modalBackdrop');
+    if(backdrop){
+      backdrop.addEventListener('click', function(e){ if(e.target === backdrop){ state.bulkModalOpen = false; render(); } });
+      document.getElementById('modalCancel').addEventListener('click', function(){ state.bulkModalOpen = false; render(); });
+      document.getElementById('bulkStatusSelect').addEventListener('change', function(e){ state.bulkStatus = e.target.value; });
+      document.getElementById('modalConfirm').addEventListener('click', function(){
+        var n = Object.keys(state.checked).filter(function(k){ return state.checked[k]; }).length;
+        state.bulkModalOpen = false; state.checked = {}; render();
+        NvsChrome.toast('Status updated for ' + n + ' order' + (n===1?'':'s'));
+      });
+    }
+  }
+
+  document.addEventListener('click', function(){ if(state.openMenu !== null){ state.openMenu = null; render(); } });
+
+  render();
+})();
+</script>
+</body>
+</html>

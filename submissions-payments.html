@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Submissions &amp; Payments — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+  .thead,.row{ grid-template-columns:170px 1fr 190px 140px 170px 54px; }
+  @media (max-width:900px){
+    .thead,.row{ grid-template-columns:140px 1fr 120px 44px; }
+    .thead > :nth-child(3),.row > :nth-child(3),.thead > :nth-child(5),.row > :nth-child(5){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main>
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1>Submissions &amp; Payments</h1>
+      <div class="crumbs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>Sales</span><span class="sep">/</span><span class="cur">Submissions &amp; Payments</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="position:relative">
+    <div class="toolbar">
+      <div class="count-info" id="countInfo"></div>
+      <div class="spacer"></div>
+      <div class="tool-link" id="searchToggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+      </div>
+      <div class="tool-link" id="filterToggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters
+        <span class="dot" id="filterDot" hidden></span>
+      </div>
+    </div>
+
+    <div class="search-panel" id="searchPanel" hidden>
+      <div class="search-field"><label>Customer Name</label><div class="search-wrap" style="width:100%"><input id="f-customer" style="width:100%;border-radius:6px;border-right:1px solid var(--border)" placeholder="e.g. Michelle Tay"></div></div>
+      <div class="search-field"><label>NRIC</label><div class="search-wrap" style="width:100%"><input id="f-nric" style="width:100%;border-radius:6px;border-right:1px solid var(--border)" placeholder="e.g. S1234567A"></div></div>
+      <div class="search-field"><label>Invoice No.</label><div class="search-wrap" style="width:100%"><input id="f-invoiceNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)" placeholder="e.g. INV000210"></div></div>
+      <div class="search-field"><label>File No.</label><div class="search-wrap" style="width:100%"><input id="f-fileNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)" placeholder="e.g. F0004821"></div></div>
+      <div class="search-field"><label>Lot No.</label><div class="search-wrap" style="width:100%"><input id="f-lotNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)" placeholder="e.g. B-12-04"></div></div>
+    </div>
+
+    <div class="filter-panel" id="filterPanel" hidden>
+      <h3>Filters</h3>
+      <div class="f-group"><label>Invoice Status</label>
+        <select id="fp-status"><option value="">All statuses</option><option value="Paid">Paid</option><option value="Pending Payment">Pending Payment</option><option value="Overdue">Overdue</option></select>
+      </div>
+      <div class="f-group"><label>File Type</label>
+        <select id="fp-fileType"><option value="">All types</option><option value="Niche">Niche</option><option value="Plot">Plot</option><option value="Urn">Urn</option></select>
+      </div>
+      <div class="f-group"><label>Invoice Date</label>
+        <input type="date" id="fp-date">
+      </div>
+      <div class="filter-panel-actions">
+        <div class="btn-text" id="filterReset">Reset</div>
+        <div class="btn-confirm" id="filterApply">Apply</div>
+      </div>
+    </div>
+
+    <div class="chips-row" id="chipsRow" hidden></div>
+
+    <div class="thead">
+      <div>Trx ID</div>
+      <div>NVS File Type</div>
+      <div>Purchaser(s)</div>
+      <div>Payment Status</div>
+      <div>Created</div>
+      <div>Actions</div>
+    </div>
+
+    <div id="rows"></div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'payments');
+
+  var DATA = [
+    { id:'1', invoiceNo:'INV000210', fileNo:'F0004821', fileType:'Eternal Garden — Double Niche', location:'Block C, Level 3', customer:'Michelle Tay', nric:'S12***67A', status:'Paid', createdBy:'Grace Lim', createdAt:'12 Feb 2026, 9:14 AM' },
+    { id:'2', invoiceNo:'INV000211', fileNo:'F0004822', fileType:'Lotus Court — Columbarium Niche', location:'Block A, Level 1', customer:'Wei Ling Koh', nric:'S87***21B', status:'Pending Payment', createdBy:'Grace Lim', createdAt:'13 Feb 2026, 11:02 AM' },
+    { id:'3', invoiceNo:'INV000212', fileNo:'F0004823', fileType:'Serenity Garden — Family Plot', location:'Garden Row 7', customer:'Rajesh Kumar', nric:'S45***93C', status:'Overdue', createdBy:'Daniel Ng', createdAt:'14 Feb 2026, 2:47 PM' },
+    { id:'4', invoiceNo:'INV000213', fileNo:'F0004824', fileType:'Eternal Garden — Single Niche', location:'Block C, Level 2', customer:'Amanda Lim', nric:'S66***48D', status:'Paid', createdBy:'Daniel Ng', createdAt:'15 Feb 2026, 10:30 AM' },
+    { id:'5', invoiceNo:'INV000214', fileNo:'F0004825', fileType:'Lotus Court — Double Niche', location:'Block A, Level 2', customer:'David Lim', nric:'S23***15E', status:'Pending Payment', createdBy:'Grace Lim', createdAt:'16 Feb 2026, 4:12 PM' },
+    { id:'6', invoiceNo:'INV000215', fileNo:'F0004826', fileType:'Serenity Garden — Urn Plot', location:'Garden Row 4', customer:'Nur Aisyah', nric:'S91***76F', status:'Paid', createdBy:'Daniel Ng', createdAt:'17 Feb 2026, 9:55 AM' },
+    { id:'7', invoiceNo:'INV000216', fileNo:'F0004827', fileType:'Eternal Garden — Family Niche', location:'Block B, Level 1', customer:'Kelvin Goh', nric:'S38***02G', status:'Overdue', createdBy:'Grace Lim', createdAt:'18 Feb 2026, 1:20 PM' },
+    { id:'8', invoiceNo:'INV000217', fileNo:'F0004828', fileType:'Lotus Court — Single Niche', location:'Block A, Level 3', customer:'Farah Yusof', nric:'S57***89H', status:'Paid', createdBy:'Daniel Ng', createdAt:'19 Feb 2026, 3:08 PM' },
+  ];
+  var PER_PAGE = 5;
+  var STATUS_VARIANT = { 'Paid':'light-success', 'Pending Payment':'light-warning', 'Overdue':'light-danger' };
+
+  var state = {
+    page:1, openMenu:null, showSearch:false, showFilter:false,
+    search:{ customer:'', nric:'', invoiceNo:'', fileNo:'', lotNo:'' },
+    filter:{ status:'', fileType:'', date:'' },
+    emailModal:null,
+  };
+
+  function activeFilterChips(){
+    var chips = [];
+    if(state.filter.status) chips.push({ key:'status', label:'Status: ' + state.filter.status });
+    if(state.filter.fileType) chips.push({ key:'fileType', label:'Type: ' + state.filter.fileType });
+    if(state.filter.date) chips.push({ key:'date', label:'Date: ' + state.filter.date });
+    return chips;
+  }
+
+  function getFiltered(){
+    var list = DATA.slice();
+    var s = state.search;
+    if(s.customer.trim()) list = list.filter(function(d){ return d.customer.toLowerCase().indexOf(s.customer.trim().toLowerCase()) > -1; });
+    if(s.nric.trim()) list = list.filter(function(d){ return d.nric.toLowerCase().indexOf(s.nric.trim().toLowerCase()) > -1; });
+    if(s.invoiceNo.trim()) list = list.filter(function(d){ return d.invoiceNo.toLowerCase().indexOf(s.invoiceNo.trim().toLowerCase()) > -1; });
+    if(s.fileNo.trim()) list = list.filter(function(d){ return d.fileNo.toLowerCase().indexOf(s.fileNo.trim().toLowerCase()) > -1; });
+    if(state.filter.status) list = list.filter(function(d){ return d.status === state.filter.status; });
+    if(state.filter.fileType) list = list.filter(function(d){ return d.fileType.toLowerCase().indexOf(state.filter.fileType.toLowerCase()) > -1; });
+    return list;
+  }
+
+  function render(){
+    var filtered = getFiltered();
+    var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    if(state.page > totalPages) state.page = totalPages;
+    var page = state.page;
+    var pageSlice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+
+    var from = filtered.length === 0 ? 0 : (page-1)*PER_PAGE + 1;
+    var to = Math.min(page*PER_PAGE, filtered.length);
+    document.getElementById('countInfo').textContent = 'Showing ' + from + '–' + to + ' of ' + filtered.length;
+
+    document.getElementById('searchPanel').hidden = !state.showSearch;
+    document.getElementById('filterPanel').hidden = !state.showFilter;
+
+    var chips = activeFilterChips();
+    var chipsRow = document.getElementById('chipsRow');
+    if(chips.length){
+      chipsRow.hidden = false;
+      chipsRow.innerHTML = chips.map(function(c){
+        return '<div class="chip">' + NvsChrome.esc(c.label) + '<span class="x" data-chip="' + c.key + '">&#10005;</span></div>';
+      }).join('') + '<div class="chips-clear" id="chipsClear">Clear Filters</div>';
+    } else {
+      chipsRow.hidden = true; chipsRow.innerHTML = '';
+    }
+    document.getElementById('filterDot').hidden = chips.length === 0;
+
+    if(pageSlice.length === 0){
+      document.getElementById('rows').innerHTML = '<div class="empty-row">No matching records found</div>';
+    } else {
+      document.getElementById('rows').innerHTML = pageSlice.map(function(d){
+        var menuOpen = state.openMenu === d.id;
+        return '<div class="row">' +
+          '<div><div class="sr-id" data-view="' + d.id + '">' + NvsChrome.esc(d.invoiceNo) + '</div><div class="sr-sub">' + NvsChrome.esc(d.fileNo) + '</div></div>' +
+          '<div><div>' + NvsChrome.esc(d.fileType) + '</div><div class="sr-sub">' + NvsChrome.esc(d.location) + '</div></div>' +
+          '<div><div class="cust">' + NvsChrome.esc(d.customer) + '</div><div class="cust-sub">' + NvsChrome.esc(d.nric) + '</div></div>' +
+          '<div><span class="badge ' + STATUS_VARIANT[d.status] + '">' + NvsChrome.esc(d.status) + '</span></div>' +
+          '<div><div>' + NvsChrome.esc(d.createdAt) + '</div><div class="sr-sub">by ' + NvsChrome.esc(d.createdBy) + '</div></div>' +
+          '<div class="more-wrap">' +
+            '<div class="more-btn" data-more="' + d.id + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>' +
+            (menuOpen ? '<div class="menu">' +
+              '<div class="menu-item" data-view="' + d.id + '">View</div>' +
+              '<div class="menu-item" data-register="' + d.id + '">Register Payment</div>' +
+              '<div class="menu-item" data-download="' + d.id + '">Download</div>' +
+              '<div class="menu-item" data-email="' + d.id + '">Email to Customer</div>' +
+            '</div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    var pagHtml = '<div class="page-nav" data-page="prev"' + (page<=1?' disabled':'') + '>' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Prev</div>';
+    for(var i=1;i<=totalPages;i++) pagHtml += '<div class="page-num' + (page===i?' on':'') + '" data-page="' + i + '">' + i + '</div>';
+    pagHtml += '<div class="page-nav" data-page="next"' + (page>=totalPages?' disabled':'') + '>Next<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
+    document.getElementById('pagination').innerHTML = filtered.length > PER_PAGE ? pagHtml : '';
+
+    document.getElementById('modalRoot').innerHTML = state.emailModal ? renderEmailModal() : '';
+
+    bindEvents();
+  }
+
+  function renderEmailModal(){
+    var d = DATA.find(function(x){ return x.id === state.emailModal; });
+    return '<div class="modal-backdrop" id="modalBackdrop"><div class="modal wide">' +
+      '<h2>Email Invoice to Customer</h2>' +
+      '<div class="field-wrap"><div class="field-label">Recipient</div><input class="modal-input" value="' + NvsChrome.esc(d.customer) + '" disabled></div>' +
+      '<div class="field-wrap"><div class="field-label">Email<span class="req">*</span></div><input class="modal-input" id="emailAddr" placeholder="customer@email.com"></div>' +
+      '<div class="field-wrap"><div class="field-label">Message</div><textarea class="modal-textarea">Dear ' + NvsChrome.esc(d.customer) + ', please find attached invoice ' + NvsChrome.esc(d.invoiceNo) + '.</textarea></div>' +
+      '<div class="modal-actions"><div class="btn-text" id="modalCancel">Cancel</div><div class="btn-confirm" id="modalSend">Send</div></div>' +
+    '</div></div>';
+  }
+
+  function bindEvents(){
+    document.getElementById('searchToggle').addEventListener('click', function(){ state.showSearch = !state.showSearch; state.showFilter = false; render(); });
+    document.getElementById('filterToggle').addEventListener('click', function(e){ e.stopPropagation(); state.showFilter = !state.showFilter; state.showSearch = false; render(); });
+    ['customer','nric','invoiceNo','fileNo','lotNo'].forEach(function(key){
+      var el = document.getElementById('f-' + key);
+      if(!el) return;
+      el.value = state.search[key];
+      el.addEventListener('input', function(e){ state.search[key] = e.target.value; state.page = 1; render(); e.target.focus(); e.target.setSelectionRange(e.target.value.length, e.target.value.length); });
+    });
+    var fpStatus = document.getElementById('fp-status'); if(fpStatus) fpStatus.value = state.filter.status;
+    var fpType = document.getElementById('fp-fileType'); if(fpType) fpType.value = state.filter.fileType;
+    var fpDate = document.getElementById('fp-date'); if(fpDate) fpDate.value = state.filter.date;
+    var applyBtn = document.getElementById('filterApply');
+    if(applyBtn) applyBtn.addEventListener('click', function(){
+      state.filter.status = document.getElementById('fp-status').value;
+      state.filter.fileType = document.getElementById('fp-fileType').value;
+      state.filter.date = document.getElementById('fp-date').value;
+      state.showFilter = false; state.page = 1; render();
+    });
+    var resetBtn = document.getElementById('filterReset');
+    if(resetBtn) resetBtn.addEventListener('click', function(){ state.filter = { status:'', fileType:'', date:'' }; state.showFilter = false; state.page = 1; render(); });
+    document.querySelectorAll('[data-chip]').forEach(function(el){
+      el.addEventListener('click', function(){ state.filter[el.dataset.chip] = ''; state.page = 1; render(); });
+    });
+    var chipsClear = document.getElementById('chipsClear');
+    if(chipsClear) chipsClear.addEventListener('click', function(){ state.filter = { status:'', fileType:'', date:'' }; state.page = 1; render(); });
+
+    document.querySelectorAll('[data-more]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); state.openMenu = state.openMenu === el.dataset.more ? null : el.dataset.more; render(); });
+    });
+    document.querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.view; });
+        window.location.href = 'invoice-detail.html?id=' + encodeURIComponent(d ? d.id : '');
+      });
+    });
+    document.querySelectorAll('[data-register]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.register; });
+        window.location.href = 'register-payment.html?invoiceId=' + encodeURIComponent(d ? d.id : '');
+      });
+    });
+    document.querySelectorAll('[data-download]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); var d = DATA.find(function(x){ return x.id === el.dataset.download; }); state.openMenu = null; render(); NvsChrome.toast('Downloading ' + (d ? d.invoiceNo : '') + '.pdf'); });
+    });
+    document.querySelectorAll('[data-email]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); state.openMenu = null; state.emailModal = el.dataset.email; render(); });
+    });
+    document.querySelectorAll('[data-page]').forEach(function(el){
+      el.addEventListener('click', function(){
+        if(el.hasAttribute('disabled')) return;
+        var v = el.dataset.page;
+        var filtered = getFiltered();
+        var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+        if(v === 'prev') state.page = Math.max(1, state.page - 1);
+        else if(v === 'next') state.page = Math.min(totalPages, state.page + 1);
+        else state.page = parseInt(v, 10);
+        render();
+      });
+    });
+    var backdrop = document.getElementById('modalBackdrop');
+    if(backdrop){
+      backdrop.addEventListener('click', function(e){ if(e.target === backdrop){ state.emailModal = null; render(); } });
+      document.getElementById('modalCancel').addEventListener('click', function(){ state.emailModal = null; render(); });
+      document.getElementById('modalSend').addEventListener('click', function(){
+        var d = DATA.find(function(x){ return x.id === state.emailModal; });
+        state.emailModal = null; render();
+        NvsChrome.toast('Invoice emailed to ' + (d ? d.customer : ''));
+      });
+    }
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('#filterToggle') && !e.target.closest('#filterPanel') && state.showFilter){ state.showFilter = false; render(); }
+    else if(state.openMenu !== null && !e.target.closest('.more-wrap')){ state.openMenu = null; render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

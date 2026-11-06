@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order Detail — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main style="max-width:1100px">
+  <div class="back-link" id="backLink">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to Sales Orders
+  </div>
+
+  <div class="detail-header">
+    <div>
+      <h1 id="orderTitle"></h1>
+      <div class="detail-sub" id="orderSub"></div>
+    </div>
+    <div class="kebab-wrap">
+      <div class="more-btn" id="kebabBtn" style="background:var(--surface);box-shadow:0 2px 8px rgba(16,40,90,0.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+      <div class="menu" id="kebabMenu" hidden style="top:44px">
+        <div class="menu-item" id="invoiceItem">Generate Invoice</div>
+        <div class="menu-item" id="downloadItem">Download</div>
+        <div class="menu-item" id="emailItem">Email to Customer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="card">
+      <h2>Order &amp; Customer Details</h2>
+      <div class="info-grid">
+        <div class="info-field"><label>Order Date</label><div class="val" id="f-orderDate"></div></div>
+        <div class="info-field"><label>Related Quotation</label><div class="val" id="f-quoteId" style="color:var(--navy);cursor:pointer"></div></div>
+        <div class="info-field" style="grid-column:1/-1"><label>Remarks</label><div class="val muted" id="f-remarks"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-grid">
+        <div class="info-field"><label>Customer Name</label><div class="val" id="f-custName"></div></div>
+        <div class="info-field"><label>NRIC No.</label><div class="val" id="f-nric"></div></div>
+        <div class="info-field"><label>Mobile No.</label><div class="val" id="f-mobile"></div></div>
+        <div class="info-field"><label>Email Address</label><div class="val" id="f-email"></div></div>
+        <div class="info-field" style="grid-column:1/-1"><label>Address</label><div class="val muted" id="f-address"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Product Details</h2>
+      <div class="info-grid cols-1">
+        <div class="info-field"><label>Product / Package</label><div class="val" id="f-product"></div></div>
+        <div class="info-field"><label>Quotation Status</label><div class="val muted" id="f-quoteSub"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-grid">
+        <div class="info-field"><label>Order Status</label><div id="f-orderStatus"></div></div>
+        <div class="info-field"><label>Payment Status</label><div id="f-paymentStatus"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Order Items</h2>
+    <table class="line-items">
+      <thead><tr><th>No.</th><th>Item</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+    <div style="max-width:280px;margin-left:auto;margin-top:14px">
+      <div class="totals-row"><span>Subtotal</span><span id="t-subtotal"></span></div>
+      <div class="totals-row"><span>GST (8%)</span><span id="t-gst"></span></div>
+      <div class="totals-row grand"><span>Total</span><span id="t-total"></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Payment History</h2>
+    <table class="line-items" id="paymentTable">
+      <thead><tr><th>Receipt No.</th><th>Date</th><th>Mode</th><th class="num">Amount</th></tr></thead>
+      <tbody id="paymentBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Activity Log</h2>
+    <ul class="timeline" id="timeline"></ul>
+  </div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'orders');
+  document.getElementById('backLink').addEventListener('click', function(){ window.location.href = 'sales-orders.html'; });
+
+  var DATA = [
+    { id:'1', orderNo:'SO2091', quoteId:'QT000112', quoteSub:'Approved', product:'Eternal Garden — Double Niche', customer:'Tan Boon Huat', orderStatus:'Pending', paymentStatus:'Partially Paid', orderDate:'03 Mar 2026', total:12800 },
+    { id:'2', orderNo:'SO2092', quoteId:'QT000113', quoteSub:'Approved', product:'Lotus Court — Columbarium Niche', customer:'Siti Rahayu', orderStatus:'Confirmed', paymentStatus:'Fully Paid', orderDate:'03 Mar 2026', total:6400 },
+    { id:'3', orderNo:'SO2093', quoteId:'QT000114', quoteSub:'Pending Review', product:'Serenity Garden — Family Plot', customer:'James Ong', orderStatus:'Pending', paymentStatus:'Fully Paid', orderDate:'04 Mar 2026', total:24500 },
+    { id:'4', orderNo:'SO2094', quoteId:'QT000115', quoteSub:'Approved', product:'Eternal Garden — Single Niche', customer:'Farah Yusof', orderStatus:'Completed', paymentStatus:'Fully Paid', orderDate:'05 Mar 2026', total:5200 },
+    { id:'5', orderNo:'SO2095', quoteId:'QT000116', quoteSub:'Approved', product:'Lotus Court — Double Niche', customer:'David Lim', orderStatus:'Confirmed', paymentStatus:'Partially Paid', orderDate:'06 Mar 2026', total:9600 },
+    { id:'6', orderNo:'SO2096', quoteId:'QT000117', quoteSub:'Revised', product:'Serenity Garden — Urn Plot', customer:'David Lim', orderStatus:'Completed', paymentStatus:'Fully Paid', orderDate:'07 Mar 2026', total:8300 },
+    { id:'7', orderNo:'SO2097', quoteId:'QT000118', quoteSub:'Approved', product:'Eternal Garden — Family Niche', customer:'Nur Aisyah', orderStatus:'Cancelled', paymentStatus:'Refunded', orderDate:'08 Mar 2026', total:15400 },
+    { id:'8', orderNo:'SO2098', quoteId:'QT000119', quoteSub:'Approved', product:'Lotus Court — Single Niche', customer:'Kelvin Goh', orderStatus:'Completed', paymentStatus:'Overpaid', orderDate:'08 Mar 2026', total:5200 },
+  ];
+  var badgeClass = function(s){ return s.toLowerCase().replace(/\s+/g,''); };
+
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id') || '1';
+  var d = DATA.find(function(x){ return x.id === id; }) || DATA[0];
+  var c = NvsChrome.customer(d.customer);
+
+  document.title = d.orderNo + ' — NVS-OS Prototype';
+  document.getElementById('orderTitle').textContent = d.orderNo;
+  document.getElementById('orderSub').textContent = 'Created by Daniel Ng on ' + d.orderDate + ' · Last updated 2 days ago';
+
+  document.getElementById('f-orderDate').textContent = d.orderDate;
+  var qEl = document.getElementById('f-quoteId');
+  qEl.textContent = d.quoteId;
+  qEl.addEventListener('click', function(){ NvsChrome.toast('Opening ' + d.quoteId); });
+  document.getElementById('f-remarks').textContent = 'No remarks added for this order.';
+  document.getElementById('f-custName').textContent = d.customer;
+  document.getElementById('f-nric').textContent = c.nric;
+  document.getElementById('f-mobile').textContent = c.mobile;
+  document.getElementById('f-email').textContent = c.email;
+  document.getElementById('f-address').textContent = c.address;
+  document.getElementById('f-product').textContent = d.product;
+  document.getElementById('f-quoteSub').textContent = d.quoteSub;
+  document.getElementById('f-orderStatus').innerHTML = '<span class="badge ' + badgeClass(d.orderStatus) + '">' + NvsChrome.esc(d.orderStatus) + '</span>';
+  document.getElementById('f-paymentStatus').innerHTML = '<span class="badge ' + badgeClass(d.paymentStatus) + '">' + NvsChrome.esc(d.paymentStatus) + '</span>';
+
+  var subtotal = d.total / 1.08;
+  var gst = d.total - subtotal;
+  document.getElementById('itemsBody').innerHTML =
+    '<tr><td>1</td><td>' + NvsChrome.esc(d.product) + '</td><td class="num">1</td><td class="num">' + NvsChrome.money(subtotal) + '</td><td class="num">' + NvsChrome.money(subtotal) + '</td></tr>';
+  document.getElementById('t-subtotal').textContent = NvsChrome.money(subtotal);
+  document.getElementById('t-gst').textContent = NvsChrome.money(gst);
+  document.getElementById('t-total').textContent = NvsChrome.money(d.total);
+
+  if(d.paymentStatus === 'Fully Paid' || d.paymentStatus === 'Overpaid' || d.paymentStatus === 'Refunded'){
+    document.getElementById('paymentBody').innerHTML =
+      '<tr><td class="sr-id">RCT' + (200500 + Number(d.id)) + '</td><td>' + d.orderDate + '</td><td>GIRO</td><td class="num">' + NvsChrome.money(d.paymentStatus === 'Refunded' ? -d.total : d.total) + '</td></tr>';
+  } else if(d.paymentStatus === 'Partially Paid'){
+    document.getElementById('paymentBody').innerHTML =
+      '<tr><td class="sr-id">RCT' + (200500 + Number(d.id)) + '</td><td>' + d.orderDate + '</td><td>Cheque</td><td class="num">' + NvsChrome.money(d.total * 0.4) + '</td></tr>';
+  } else {
+    document.getElementById('paymentTable').outerHTML = '<div class="empty-row" style="box-shadow:none;border-radius:8px">No payments recorded yet</div>';
+  }
+
+  var timelineItems = [
+    { label: 'Order created from ' + d.quoteId, meta: d.orderDate + ' · Daniel Ng', dot: '' },
+    { label: 'Order status set to ' + d.orderStatus, meta: '2 days ago · System', dot: '' },
+    { label: 'Payment status: ' + d.paymentStatus, meta: '1 day ago · System', dot: '' },
+  ];
+  document.getElementById('timeline').innerHTML = timelineItems.map(function(t){
+    return '<li><div class="dot ' + t.dot + '"></div><div><div class="t-label">' + NvsChrome.esc(t.label) + '</div><div class="t-meta">' + NvsChrome.esc(t.meta) + '</div></div></li>';
+  }).join('');
+
+  document.getElementById('kebabBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('kebabMenu').hidden = !document.getElementById('kebabMenu').hidden;
+  });
+  document.getElementById('invoiceItem').addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; NvsChrome.toast('Invoice generated for ' + d.orderNo); });
+  document.getElementById('downloadItem').addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; NvsChrome.toast('Downloading ' + d.orderNo + '.pdf'); });
+  document.getElementById('emailItem').addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; NvsChrome.toast('Order emailed to ' + d.customer); });
+  document.addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; });
+})();
+</script>
+</body>
+</html>

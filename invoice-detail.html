@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice Detail — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main style="max-width:1100px">
+  <div class="back-link" id="backLink">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to Submissions &amp; Payments
+  </div>
+
+  <div class="detail-header">
+    <div>
+      <h1 id="invTitle"></h1>
+      <div class="detail-sub" id="invSub"></div>
+    </div>
+    <div class="kebab-wrap">
+      <div class="more-btn" id="kebabBtn" style="background:var(--surface);box-shadow:0 2px 8px rgba(16,40,90,0.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+      <div class="menu" id="kebabMenu" hidden style="top:44px">
+        <div class="menu-item" id="registerItem">Register Payment</div>
+        <div class="menu-item" id="downloadItem">Download</div>
+        <div class="menu-item" id="emailItem">Email to Customer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="card">
+      <h2>Invoice &amp; Customer Details</h2>
+      <div class="info-grid">
+        <div class="info-field"><label>Invoice Date</label><div class="val" id="f-invoiceDate"></div></div>
+        <div class="info-field"><label>PO No.</label><div class="val muted" id="f-poNo"></div></div>
+        <div class="info-field" style="grid-column:1/-1"><label>Remarks</label><div class="val muted" id="f-remarks"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-grid">
+        <div class="info-field"><label>Customer Name</label><div class="val" id="f-custName"></div></div>
+        <div class="info-field"><label>NRIC No.</label><div class="val" id="f-nric"></div></div>
+        <div class="info-field"><label>Mobile No.</label><div class="val" id="f-mobile"></div></div>
+        <div class="info-field"><label>Email Address</label><div class="val" id="f-email"></div></div>
+        <div class="info-field" style="grid-column:1/-1"><label>Address</label><div class="val muted" id="f-address"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>File Details</h2>
+      <div class="info-grid cols-1">
+        <div class="info-field"><label>File No.</label><div class="val" id="f-fileNo" style="color:var(--navy);cursor:pointer"></div></div>
+        <div class="info-field"><label>Lot No.</label><div class="val" id="f-lotNo"></div></div>
+        <div class="info-field"><label>Product Description</label><div class="val" id="f-product"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-field"><label>Payment Status</label><div id="f-status"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Invoice Items</h2>
+    <table class="line-items">
+      <thead><tr><th>No.</th><th>Item</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+    <div style="max-width:280px;margin-left:auto;margin-top:14px">
+      <div class="totals-row"><span>Subtotal</span><span id="t-subtotal"></span></div>
+      <div class="totals-row"><span>GST (8%)</span><span id="t-gst"></span></div>
+      <div class="totals-row grand"><span>Total Debit</span><span id="t-total"></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Payment History</h2>
+    <table class="line-items" id="paymentTable">
+      <thead><tr><th>Receipt No.</th><th>Date</th><th>Mode</th><th class="num">Amount</th></tr></thead>
+      <tbody id="paymentBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Attachments</h2>
+    <div id="attachments"></div>
+  </div>
+
+  <div class="card">
+    <h2>Activity Log</h2>
+    <ul class="timeline" id="timeline"></ul>
+  </div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'payments');
+  document.getElementById('backLink').addEventListener('click', function(){ window.location.href = 'submissions-payments.html'; });
+
+  var DATA = [
+    { id:'1', invoiceNo:'INV000210', fileNo:'F0004821', lotNo:'C-03-12', fileType:'Eternal Garden — Double Niche', location:'Block C, Level 3', customer:'Michelle Tay', status:'Paid', createdBy:'Grace Lim', createdAt:'12 Feb 2026', total:2200 },
+    { id:'2', invoiceNo:'INV000211', fileNo:'F0004822', lotNo:'A-01-04', fileType:'Lotus Court — Columbarium Niche', location:'Block A, Level 1', customer:'Wei Ling Koh', status:'Pending Payment', createdBy:'Grace Lim', createdAt:'13 Feb 2026', total:1500 },
+    { id:'3', invoiceNo:'INV000212', fileNo:'F0004823', lotNo:'G-07-19', fileType:'Serenity Garden — Family Plot', location:'Garden Row 7', customer:'Rajesh Kumar', status:'Overdue', createdBy:'Daniel Ng', createdAt:'14 Feb 2026', total:8600 },
+    { id:'4', invoiceNo:'INV000213', fileNo:'F0004824', lotNo:'C-02-08', fileType:'Eternal Garden — Single Niche', location:'Block C, Level 2', customer:'Amanda Lim', status:'Paid', createdBy:'Daniel Ng', createdAt:'15 Feb 2026', total:1950 },
+    { id:'5', invoiceNo:'INV000214', fileNo:'F0004825', lotNo:'A-02-15', fileType:'Lotus Court — Double Niche', location:'Block A, Level 2', customer:'David Lim', status:'Pending Payment', createdBy:'Grace Lim', createdAt:'16 Feb 2026', total:3200 },
+    { id:'6', invoiceNo:'INV000215', fileNo:'F0004826', lotNo:'G-04-02', fileType:'Serenity Garden — Urn Plot', location:'Garden Row 4', customer:'Nur Aisyah', status:'Paid', createdBy:'Daniel Ng', createdAt:'17 Feb 2026', total:4100 },
+    { id:'7', invoiceNo:'INV000216', fileNo:'F0004827', lotNo:'B-01-11', fileType:'Eternal Garden — Family Niche', location:'Block B, Level 1', customer:'Kelvin Goh', status:'Overdue', createdBy:'Grace Lim', createdAt:'18 Feb 2026', total:2750 },
+    { id:'8', invoiceNo:'INV000217', fileNo:'F0004828', lotNo:'A-03-06', fileType:'Lotus Court — Single Niche', location:'Block A, Level 3', customer:'Farah Yusof', status:'Paid', createdBy:'Daniel Ng', createdAt:'19 Feb 2026', total:1350 },
+  ];
+  var STATUS_VARIANT = { 'Paid':'light-success', 'Pending Payment':'light-warning', 'Overdue':'light-danger' };
+
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id') || '1';
+  var d = DATA.find(function(x){ return x.id === id; }) || DATA[0];
+  var c = NvsChrome.customer(d.customer);
+
+  document.title = d.invoiceNo + ' — NVS-OS Prototype';
+  document.getElementById('invTitle').textContent = d.invoiceNo;
+  document.getElementById('invSub').textContent = 'Created by ' + d.createdBy + ' on ' + d.createdAt + ' · Last updated 2 days ago';
+
+  document.getElementById('f-invoiceDate').textContent = d.createdAt;
+  document.getElementById('f-poNo').textContent = '—';
+  document.getElementById('f-remarks').textContent = 'No remarks added for this invoice.';
+  document.getElementById('f-custName').textContent = d.customer;
+  document.getElementById('f-nric').textContent = c.nric;
+  document.getElementById('f-mobile').textContent = c.mobile;
+  document.getElementById('f-email').textContent = c.email;
+  document.getElementById('f-address').textContent = c.address;
+
+  var fileEl = document.getElementById('f-fileNo');
+  fileEl.textContent = d.fileNo;
+  fileEl.addEventListener('click', function(){ NvsChrome.toast('Opening file ' + d.fileNo); });
+  document.getElementById('f-lotNo').textContent = d.lotNo + ' · ' + d.location;
+  document.getElementById('f-product').textContent = d.fileType;
+  document.getElementById('f-status').innerHTML = '<span class="badge ' + STATUS_VARIANT[d.status] + '">' + NvsChrome.esc(d.status) + '</span>';
+
+  var subtotal = d.total / 1.08;
+  var gst = d.total - subtotal;
+  document.getElementById('itemsBody').innerHTML =
+    '<tr><td>1</td><td>' + NvsChrome.esc(d.fileType) + '</td><td class="num">1</td><td class="num">' + NvsChrome.money(subtotal) + '</td><td class="num">' + NvsChrome.money(subtotal) + '</td></tr>';
+  document.getElementById('t-subtotal').textContent = NvsChrome.money(subtotal);
+  document.getElementById('t-gst').textContent = NvsChrome.money(gst);
+  document.getElementById('t-total').textContent = NvsChrome.money(d.total);
+
+  if(d.status === 'Paid'){
+    document.getElementById('paymentBody').innerHTML =
+      '<tr><td class="sr-id">RCT' + (300500 + Number(d.id)) + '</td><td>' + d.createdAt + '</td><td>PayNow</td><td class="num">' + NvsChrome.money(d.total) + '</td></tr>';
+  } else {
+    document.getElementById('paymentTable').outerHTML = '<div class="empty-row" style="box-shadow:none;border-radius:8px">No payments recorded yet</div>';
+  }
+
+  document.getElementById('attachments').innerHTML =
+    '<div class="attachment-row"><div class="attachment-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><div class="attachment-name">Signed Agreement.pdf</div><div class="attachment-meta">248 KB · uploaded by ' + NvsChrome.esc(d.createdBy) + ' on ' + d.createdAt + '</div></div></div>' +
+    '<div class="attachment-row"><div class="attachment-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><div><div class="attachment-name">NRIC Copy.jpg</div><div class="attachment-meta">1.1 MB · uploaded by ' + NvsChrome.esc(d.createdBy) + ' on ' + d.createdAt + '</div></div></div>';
+
+  var timelineItems = [
+    { label: 'Invoice generated', meta: d.createdAt + ' · ' + d.createdBy, dot: '' },
+    { label: 'Sent to customer', meta: d.createdAt + ' · System', dot: '' },
+    { label: 'Payment status: ' + d.status, meta: '1 day ago · System', dot: d.status === 'Pending Payment' ? 'muted' : '' },
+  ];
+  document.getElementById('timeline').innerHTML = timelineItems.map(function(t){
+    return '<li><div class="dot ' + t.dot + '"></div><div><div class="t-label">' + NvsChrome.esc(t.label) + '</div><div class="t-meta">' + NvsChrome.esc(t.meta) + '</div></div></li>';
+  }).join('');
+
+  document.getElementById('kebabBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('kebabMenu').hidden = !document.getElementById('kebabMenu').hidden;
+  });
+  document.getElementById('registerItem').addEventListener('click', function(){ window.location.href = 'register-payment.html?invoiceId=' + encodeURIComponent(d.id); });
+  document.getElementById('downloadItem').addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; NvsChrome.toast('Downloading ' + d.invoiceNo + '.pdf'); });
+  document.getElementById('emailItem').addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; NvsChrome.toast('Invoice emailed to ' + d.customer); });
+  document.addEventListener('click', function(){ document.getElementById('kebabMenu').hidden = true; });
+})();
+</script>
+</body>
+</html>

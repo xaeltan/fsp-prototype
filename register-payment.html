@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Register Payment — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main style="max-width:860px">
+  <div class="back-link" id="backLink">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back
+  </div>
+
+  <div class="detail-header">
+    <div>
+      <h1>Register Payment</h1>
+      <div class="detail-sub" id="pageSub"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Making Payment For</h2>
+    <div class="info-grid">
+      <div class="info-field"><label>File No.</label><div class="val" id="f-fileNo"></div></div>
+      <div class="info-field"><label>Product / Lot Type</label><div class="val" id="f-product"></div></div>
+      <div class="info-field"><label>Customer</label><div class="val" id="f-customer"></div></div>
+      <div class="info-field"><label>NRIC No.</label><div class="val" id="f-nric"></div></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:40px;flex-wrap:wrap">
+      <div class="summary-card" style="flex:1;min-width:180px">
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Previously Paid</label>
+        <div class="amount" id="s-paid" style="color:var(--green)"></div>
+      </div>
+      <div class="summary-card" style="flex:1;min-width:180px">
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Total Outstanding</label>
+        <div class="amount" id="s-outstanding"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Select Invoices / Installments</h2>
+    <div class="select-row" style="border-bottom:1px solid var(--hairline);font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;padding-bottom:10px">
+      <div class="check on" id="selectAll" style="cursor:pointer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <span>Select All</span>
+    </div>
+    <div id="installmentRows"></div>
+  </div>
+
+  <div class="card">
+    <h2>Payment Details</h2>
+    <div class="field-wrap">
+      <div class="field-label">Amount to be Paid<span class="req">*</span></div>
+      <input class="modal-input" id="amountInput" style="height:46px;font-size:16px;font-weight:700">
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-label">Payment Mode<span class="req">*</span></div>
+      <div class="radio-row" id="modeRow"></div>
+    </div>
+
+    <div id="conditionalFields"></div>
+
+    <div class="divider"></div>
+    <div class="modal-actions" style="justify-content:flex-end">
+      <div class="btn-text" id="cancelBtn">Cancel</div>
+      <div class="btn-confirm" id="submitBtn" style="padding:12px 26px">Submit Payment</div>
+    </div>
+  </div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'payments');
+
+  var INVOICES = {
+    '1': { fileNo:'F0004821', product:'Eternal Garden — Double Niche', customer:'Michelle Tay', total:2200, paid:2200 },
+    '2': { fileNo:'F0004822', product:'Lotus Court — Columbarium Niche', customer:'Wei Ling Koh', total:1500, paid:500 },
+    '3': { fileNo:'F0004823', product:'Serenity Garden — Family Plot', customer:'Rajesh Kumar', total:8600, paid:0 },
+    '4': { fileNo:'F0004824', product:'Eternal Garden — Single Niche', customer:'Amanda Lim', total:1950, paid:1950 },
+    '5': { fileNo:'F0004825', product:'Lotus Court — Double Niche', customer:'David Lim', total:3200, paid:0 },
+    '6': { fileNo:'F0004826', product:'Serenity Garden — Urn Plot', customer:'Nur Aisyah', total:4100, paid:4100 },
+    '7': { fileNo:'F0004827', product:'Eternal Garden — Family Niche', customer:'Kelvin Goh', total:2750, paid:0 },
+    '8': { fileNo:'F0004828', product:'Lotus Court — Single Niche', customer:'Farah Yusof', total:1350, paid:1350 },
+  };
+  var MODES = ['Cash', 'NETS', 'PayNow', 'GIRO', 'Cheque'];
+
+  var params = new URLSearchParams(window.location.search);
+  var invoiceId = params.get('invoiceId') || '2';
+  var base = INVOICES[invoiceId] || INVOICES['2'];
+  var c = NvsChrome.customer(base.customer);
+  var outstanding = base.total - base.paid;
+
+  document.getElementById('backLink').addEventListener('click', function(){ window.history.length > 1 ? window.history.back() : (window.location.href = 'submissions-payments.html'); });
+  document.getElementById('pageSub').textContent = 'For ' + base.customer + ' · ' + base.fileNo;
+
+  document.getElementById('f-fileNo').textContent = base.fileNo;
+  document.getElementById('f-product').textContent = base.product;
+  document.getElementById('f-customer').textContent = base.customer;
+  document.getElementById('f-nric').textContent = c.nric;
+  document.getElementById('s-paid').textContent = NvsChrome.money(base.paid);
+  document.getElementById('s-outstanding').textContent = NvsChrome.money(outstanding);
+
+  var installments = outstanding <= 0 ? [] : (outstanding > 1000
+    ? [
+        { id: 'i1', label: 'Installment 1 of 2', amount: Math.round(outstanding / 2), checked: true },
+        { id: 'i2', label: 'Installment 2 of 2', amount: outstanding - Math.round(outstanding / 2), checked: true },
+      ]
+    : [ { id: 'i1', label: 'Full Outstanding Balance', amount: outstanding, checked: true } ]);
+
+  var state = { mode: 'PayNow' };
+
+  function renderInstallments(){
+    if(installments.length === 0){
+      document.getElementById('installmentRows').innerHTML = '<div class="empty-row" style="box-shadow:none;border-radius:8px">This file has no outstanding balance</div>';
+      document.getElementById('selectAll').classList.remove('on');
+      return;
+    }
+    document.getElementById('installmentRows').innerHTML = installments.map(function(i){
+      return '<div class="select-row">' +
+        '<div class="check' + (i.checked?' on':'') + '" data-inst="' + i.id + '" style="cursor:pointer">' + (i.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>' +
+        '<span>' + NvsChrome.esc(i.label) + '</span>' +
+        '<span class="amt">' + NvsChrome.money(i.amount) + '</span>' +
+      '</div>';
+    }).join('');
+    document.querySelectorAll('[data-inst]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var inst = installments.find(function(x){ return x.id === el.dataset.inst; });
+        inst.checked = !inst.checked;
+        syncSelectAll();
+        renderInstallments();
+        updateAmount();
+      });
+    });
+  }
+
+  function syncSelectAll(){
+    var allOn = installments.length > 0 && installments.every(function(i){ return i.checked; });
+    document.getElementById('selectAll').classList.toggle('on', allOn);
+  }
+
+  function updateAmount(){
+    var sum = installments.filter(function(i){ return i.checked; }).reduce(function(a,i){ return a + i.amount; }, 0);
+    document.getElementById('amountInput').value = sum ? sum.toFixed(2) : '';
+  }
+
+  document.getElementById('selectAll').addEventListener('click', function(){
+    var allOn = installments.length > 0 && installments.every(function(i){ return i.checked; });
+    installments.forEach(function(i){ i.checked = !allOn; });
+    renderInstallments(); syncSelectAll(); updateAmount();
+  });
+
+  renderInstallments();
+  syncSelectAll();
+  updateAmount();
+
+  function renderModeRow(){
+    document.getElementById('modeRow').innerHTML = MODES.map(function(m){
+      var on = state.mode === m;
+      return '<div class="radio-chip' + (on?' on':'') + '" data-mode="' + m + '"><div class="dot-ring"></div>' + m + '</div>';
+    }).join('');
+    document.querySelectorAll('[data-mode]').forEach(function(el){
+      el.addEventListener('click', function(){ state.mode = el.dataset.mode; renderModeRow(); renderConditional(); });
+    });
+  }
+
+  function renderConditional(){
+    var html = '';
+    if(state.mode === 'Cheque'){
+      html = '<div class="field-row">' +
+        '<div class="field-wrap"><div class="field-label">Cheque No.<span class="req">*</span></div><input class="modal-input" placeholder="e.g. 004821"></div>' +
+        '<div class="field-wrap"><div class="field-label">Bank<span class="req">*</span></div><input class="modal-input" placeholder="e.g. DBS"></div>' +
+      '</div>';
+    } else if(state.mode === 'GIRO' || state.mode === 'NETS' || state.mode === 'PayNow'){
+      html = '<div class="field-wrap"><div class="field-label">Reference No.<span class="req">*</span></div><input class="modal-input" placeholder="Transaction / reference number"></div>';
+    }
+    document.getElementById('conditionalFields').innerHTML = html;
+  }
+
+  renderModeRow();
+  renderConditional();
+
+  document.getElementById('cancelBtn').addEventListener('click', function(){ window.history.length > 1 ? window.history.back() : (window.location.href = 'submissions-payments.html'); });
+  document.getElementById('submitBtn').addEventListener('click', function(){
+    var amt = document.getElementById('amountInput').value;
+    if(!amt || Number(amt) <= 0){ NvsChrome.toast('Enter an amount to register'); return; }
+    NvsChrome.toast('Payment of ' + NvsChrome.money(Number(amt)) + ' registered for ' + base.customer);
+  });
+})();
+</script>
+</body>
+</html>

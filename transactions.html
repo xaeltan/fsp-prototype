@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Transactions — NVS-OS Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+  .thead,.row{ grid-template-columns:150px 1fr 150px 110px 110px 110px 1fr 140px 54px; }
+  @media (max-width:1100px){
+    .thead,.row{ grid-template-columns:130px 1fr 120px 100px 100px 44px; }
+    .thead > :nth-child(5),.row > :nth-child(5),.thead > :nth-child(7),.row > :nth-child(7),.thead > :nth-child(8),.row > :nth-child(8){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dev-tag">DEV PROTOTYPE — not production data</div>
+
+<div id="navbar"></div>
+<div class="subnav" id="subnav"></div>
+
+<main>
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1>Payments / Receipts</h1>
+      <div class="crumbs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>Sales</span><span class="sep">/</span><span class="cur">Transactions</span>
+      </div>
+    </div>
+    <div class="page-head-actions">
+      <div class="btn btn-outline" id="todayToggle">Today's Transactions</div>
+      <div class="btn btn-primary" id="registerBtn">Register Payment</div>
+    </div>
+  </div>
+
+  <div class="panel" style="position:relative">
+    <div class="toolbar">
+      <div class="count-info" id="countInfo"></div>
+      <div class="spacer"></div>
+      <div class="tool-link" id="searchToggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+      </div>
+      <div class="tool-link" id="filterToggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters
+        <span class="dot" id="filterDot" hidden></span>
+      </div>
+    </div>
+
+    <div class="search-panel" id="searchPanel" hidden>
+      <div class="search-field"><label>Customer Name</label><div class="search-wrap" style="width:100%"><input id="f-customer" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+      <div class="search-field"><label>NRIC</label><div class="search-wrap" style="width:100%"><input id="f-nric" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+      <div class="search-field"><label>Receipt No.</label><div class="search-wrap" style="width:100%"><input id="f-receiptNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+      <div class="search-field"><label>File No.</label><div class="search-wrap" style="width:100%"><input id="f-fileNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+      <div class="search-field"><label>Zone / Lot No.</label><div class="search-wrap" style="width:100%"><input id="f-lotNo" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+      <div class="search-field"><label>Created By</label><div class="search-wrap" style="width:100%"><input id="f-createdBy" style="width:100%;border-radius:6px;border-right:1px solid var(--border)"></div></div>
+    </div>
+
+    <div class="filter-panel" id="filterPanel" hidden>
+      <h3>Filters</h3>
+      <div class="f-group"><label>Receipt Status</label>
+        <select id="fp-status"><option value="">All statuses</option><option value="Paid">Paid</option><option value="Void">Void</option></select>
+      </div>
+      <div class="f-group"><label>Payment Mode</label>
+        <select id="fp-mode"><option value="">All modes</option><option value="CASH">Cash</option><option value="NETS">NETS</option><option value="PAYNOW">PayNow</option><option value="GIRO">GIRO</option><option value="CHEQUE">Cheque</option></select>
+      </div>
+      <div class="f-group"><label>Transaction Date</label>
+        <input type="date" id="fp-date">
+      </div>
+      <div class="filter-panel-actions">
+        <div class="btn-text" id="filterReset">Reset</div>
+        <div class="btn-confirm" id="filterApply">Apply</div>
+      </div>
+    </div>
+
+    <div class="chips-row" id="chipsRow" hidden></div>
+
+    <div class="thead">
+      <div>Trx ID</div>
+      <div>NVS File Type</div>
+      <div>Purchaser(s)</div>
+      <div>Status</div>
+      <div>Payment Mode</div>
+      <div>Trx Date</div>
+      <div>Remarks</div>
+      <div>Created</div>
+      <div>Actions</div>
+    </div>
+
+    <div id="rows"></div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</main>
+
+<div class="footer">© 2026 Nirvana Memorial Garden Pte. Ltd. — Business Operations Admin</div>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/chrome.js"></script>
+<script>
+(function(){
+  NvsChrome.mountNavbar('navbar');
+  NvsChrome.mountSubnav('subnav', 'transactions');
+
+  var TODAY = '20 Feb 2026';
+  var DATA = [
+    { id:'1', receiptNo:'RCT000501', fileNo:'F0004821', fileType:'Eternal Garden — Double Niche', customer:'Michelle Tay', nric:'S12***67A', status:'Paid', mode:'PAYNOW', trxDate:'20 Feb 2026', remarks:'Full settlement', createdBy:'Grace Lim', createdAt:'20 Feb 2026, 9:14 AM' },
+    { id:'2', receiptNo:'RCT000502', fileNo:'F0004822', fileType:'Lotus Court — Columbarium Niche', customer:'Wei Ling Koh', nric:'S87***21B', status:'Paid', mode:'NETS', trxDate:'20 Feb 2026', remarks:'Deposit — 1 of 3', createdBy:'Grace Lim', createdAt:'20 Feb 2026, 11:02 AM' },
+    { id:'3', receiptNo:'RCT000503', fileNo:'F0004823', fileType:'Serenity Garden — Family Plot', customer:'Rajesh Kumar', nric:'S45***93C', status:'Void', mode:'CHEQUE', trxDate:'19 Feb 2026', remarks:'Cheque bounced, reissued', createdBy:'Daniel Ng', createdAt:'19 Feb 2026, 2:47 PM' },
+    { id:'4', receiptNo:'RCT000504', fileNo:'F0004824', fileType:'Eternal Garden — Single Niche', customer:'Amanda Lim', nric:'S66***48D', status:'Paid', mode:'GIRO', trxDate:'18 Feb 2026', remarks:'', createdBy:'Daniel Ng', createdAt:'18 Feb 2026, 10:30 AM' },
+    { id:'5', receiptNo:'RCT000505', fileNo:'F0004825', fileType:'Lotus Court — Double Niche', customer:'David Lim', nric:'S23***15E', status:'Paid', mode:'CASH', trxDate:'20 Feb 2026', remarks:'Final installment', createdBy:'Grace Lim', createdAt:'20 Feb 2026, 4:12 PM' },
+    { id:'6', receiptNo:'RCT000506', fileNo:'F0004826', fileType:'Serenity Garden — Urn Plot', customer:'Nur Aisyah', nric:'S91***76F', status:'Paid', mode:'PAYNOW', trxDate:'17 Feb 2026', remarks:'', createdBy:'Daniel Ng', createdAt:'17 Feb 2026, 9:55 AM' },
+    { id:'7', receiptNo:'RCT000507', fileNo:'F0004827', fileType:'Eternal Garden — Family Niche', customer:'Kelvin Goh', nric:'S38***02G', status:'Void', mode:'NETS', trxDate:'16 Feb 2026', remarks:'Duplicate entry', createdBy:'Grace Lim', createdAt:'16 Feb 2026, 1:20 PM' },
+    { id:'8', receiptNo:'RCT000508', fileNo:'F0004828', fileType:'Lotus Court — Single Niche', customer:'Farah Yusof', nric:'S57***89H', status:'Paid', mode:'GIRO', trxDate:'20 Feb 2026', remarks:'Auto-debit', createdBy:'Daniel Ng', createdAt:'20 Feb 2026, 3:08 PM' },
+  ];
+  var PER_PAGE = 5;
+  var STATUS_VARIANT = { 'Paid':'light-success', 'Void':'light-danger' };
+
+  var state = {
+    page:1, openMenu:null, showSearch:false, showFilter:false, todayOnly:false,
+    search:{ customer:'', nric:'', receiptNo:'', fileNo:'', lotNo:'', createdBy:'' },
+    filter:{ status:'', mode:'', date:'' },
+    remarksModal:null, remarksDraft:'',
+  };
+
+  function activeFilterChips(){
+    var chips = [];
+    if(state.filter.status) chips.push({ key:'status', label:'Status: ' + state.filter.status });
+    if(state.filter.mode) chips.push({ key:'mode', label:'Mode: ' + state.filter.mode });
+    if(state.filter.date) chips.push({ key:'date', label:'Date: ' + state.filter.date });
+    return chips;
+  }
+
+  function getFiltered(){
+    var list = DATA.slice();
+    var s = state.search;
+    if(s.customer.trim()) list = list.filter(function(d){ return d.customer.toLowerCase().indexOf(s.customer.trim().toLowerCase()) > -1; });
+    if(s.nric.trim()) list = list.filter(function(d){ return d.nric.toLowerCase().indexOf(s.nric.trim().toLowerCase()) > -1; });
+    if(s.receiptNo.trim()) list = list.filter(function(d){ return d.receiptNo.toLowerCase().indexOf(s.receiptNo.trim().toLowerCase()) > -1; });
+    if(s.fileNo.trim()) list = list.filter(function(d){ return d.fileNo.toLowerCase().indexOf(s.fileNo.trim().toLowerCase()) > -1; });
+    if(s.createdBy.trim()) list = list.filter(function(d){ return d.createdBy.toLowerCase().indexOf(s.createdBy.trim().toLowerCase()) > -1; });
+    if(state.filter.status) list = list.filter(function(d){ return d.status === state.filter.status; });
+    if(state.filter.mode) list = list.filter(function(d){ return d.mode === state.filter.mode; });
+    if(state.todayOnly) list = list.filter(function(d){ return d.trxDate === TODAY; });
+    return list;
+  }
+
+  function render(){
+    var filtered = getFiltered();
+    var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    if(state.page > totalPages) state.page = totalPages;
+    var page = state.page;
+    var pageSlice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+
+    var todayBtn = document.getElementById('todayToggle');
+    todayBtn.classList.toggle('active', state.todayOnly);
+
+    var from = filtered.length === 0 ? 0 : (page-1)*PER_PAGE + 1;
+    var to = Math.min(page*PER_PAGE, filtered.length);
+    document.getElementById('countInfo').textContent = 'Showing ' + from + '–' + to + ' of ' + filtered.length;
+
+    document.getElementById('searchPanel').hidden = !state.showSearch;
+    document.getElementById('filterPanel').hidden = !state.showFilter;
+
+    var chips = activeFilterChips();
+    var chipsRow = document.getElementById('chipsRow');
+    if(chips.length){
+      chipsRow.hidden = false;
+      chipsRow.innerHTML = chips.map(function(c){
+        return '<div class="chip">' + NvsChrome.esc(c.label) + '<span class="x" data-chip="' + c.key + '">&#10005;</span></div>';
+      }).join('') + '<div class="chips-clear" id="chipsClear">Clear Filters</div>';
+    } else { chipsRow.hidden = true; chipsRow.innerHTML = ''; }
+    document.getElementById('filterDot').hidden = chips.length === 0;
+
+    if(pageSlice.length === 0){
+      document.getElementById('rows').innerHTML = '<div class="empty-row">No matching records found</div>';
+    } else {
+      document.getElementById('rows').innerHTML = pageSlice.map(function(d){
+        var menuOpen = state.openMenu === d.id;
+        return '<div class="row">' +
+          '<div><div class="sr-id" data-view="' + d.id + '">' + NvsChrome.esc(d.receiptNo) + '</div><div class="sr-sub">' + NvsChrome.esc(d.fileNo) + '</div></div>' +
+          '<div>' + NvsChrome.esc(d.fileType) + '</div>' +
+          '<div><div class="cust">' + NvsChrome.esc(d.customer) + '</div><div class="cust-sub">' + NvsChrome.esc(d.nric) + '</div></div>' +
+          '<div><span class="badge ' + STATUS_VARIANT[d.status] + '">' + NvsChrome.esc(d.status) + '</span></div>' +
+          '<div>' + NvsChrome.esc(d.mode) + '</div>' +
+          '<div>' + NvsChrome.esc(d.trxDate) + '</div>' +
+          '<div class="sr-sub" style="margin-top:0">' + (d.remarks ? NvsChrome.esc(d.remarks) : '—') + '</div>' +
+          '<div><div>' + NvsChrome.esc(d.createdAt) + '</div><div class="sr-sub">by ' + NvsChrome.esc(d.createdBy) + '</div></div>' +
+          '<div class="more-wrap">' +
+            '<div class="more-btn" data-more="' + d.id + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>' +
+            (menuOpen ? '<div class="menu">' +
+              '<div class="menu-item" data-view="' + d.id + '">View</div>' +
+              '<div class="menu-item" data-remarks="' + d.id + '">Edit Remarks</div>' +
+              '<div class="menu-item" data-download="' + d.id + '">Download</div>' +
+              '<div class="menu-item" data-email="' + d.id + '">Email to Customer</div>' +
+            '</div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    var pagHtml = '<div class="page-nav" data-page="prev"' + (page<=1?' disabled':'') + '>' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Prev</div>';
+    for(var i=1;i<=totalPages;i++) pagHtml += '<div class="page-num' + (page===i?' on':'') + '" data-page="' + i + '">' + i + '</div>';
+    pagHtml += '<div class="page-nav" data-page="next"' + (page>=totalPages?' disabled':'') + '>Next<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
+    document.getElementById('pagination').innerHTML = filtered.length > PER_PAGE ? pagHtml : '';
+
+    document.getElementById('modalRoot').innerHTML = state.remarksModal ? renderRemarksModal() : '';
+
+    bindEvents();
+  }
+
+  function renderRemarksModal(){
+    var d = DATA.find(function(x){ return x.id === state.remarksModal; });
+    return '<div class="modal-backdrop" id="modalBackdrop"><div class="modal">' +
+      '<h2>Edit Remarks — ' + NvsChrome.esc(d.receiptNo) + '</h2>' +
+      '<div class="field-wrap"><textarea class="modal-textarea" id="remarksInput">' + NvsChrome.esc(state.remarksDraft) + '</textarea></div>' +
+      '<div class="modal-actions"><div class="btn-text" id="modalCancel">Cancel</div><div class="btn-confirm" id="modalSave">Save</div></div>' +
+    '</div></div>';
+  }
+
+  function bindEvents(){
+    document.getElementById('todayToggle').addEventListener('click', function(){ state.todayOnly = !state.todayOnly; state.page = 1; render(); });
+    document.getElementById('registerBtn').addEventListener('click', function(){ window.location.href = 'register-payment.html'; });
+    document.getElementById('searchToggle').addEventListener('click', function(){ state.showSearch = !state.showSearch; state.showFilter = false; render(); });
+    document.getElementById('filterToggle').addEventListener('click', function(e){ e.stopPropagation(); state.showFilter = !state.showFilter; state.showSearch = false; render(); });
+    ['customer','nric','receiptNo','fileNo','lotNo','createdBy'].forEach(function(key){
+      var el = document.getElementById('f-' + key);
+      if(!el) return;
+      el.value = state.search[key];
+      el.addEventListener('input', function(e){ state.search[key] = e.target.value; state.page = 1; render(); e.target.focus(); e.target.setSelectionRange(e.target.value.length, e.target.value.length); });
+    });
+    var fpStatus = document.getElementById('fp-status'); if(fpStatus) fpStatus.value = state.filter.status;
+    var fpMode = document.getElementById('fp-mode'); if(fpMode) fpMode.value = state.filter.mode;
+    var fpDate = document.getElementById('fp-date'); if(fpDate) fpDate.value = state.filter.date;
+    var applyBtn = document.getElementById('filterApply');
+    if(applyBtn) applyBtn.addEventListener('click', function(){
+      state.filter.status = document.getElementById('fp-status').value;
+      state.filter.mode = document.getElementById('fp-mode').value;
+      state.filter.date = document.getElementById('fp-date').value;
+      state.showFilter = false; state.page = 1; render();
+    });
+    var resetBtn = document.getElementById('filterReset');
+    if(resetBtn) resetBtn.addEventListener('click', function(){ state.filter = { status:'', mode:'', date:'' }; state.showFilter = false; state.page = 1; render(); });
+    document.querySelectorAll('[data-chip]').forEach(function(el){
+      el.addEventListener('click', function(){ state.filter[el.dataset.chip] = ''; state.page = 1; render(); });
+    });
+    var chipsClear = document.getElementById('chipsClear');
+    if(chipsClear) chipsClear.addEventListener('click', function(){ state.filter = { status:'', mode:'', date:'' }; state.page = 1; render(); });
+
+    document.querySelectorAll('[data-more]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); state.openMenu = state.openMenu === el.dataset.more ? null : el.dataset.more; render(); });
+    });
+    document.querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.view; });
+        window.location.href = 'transaction-detail.html?id=' + encodeURIComponent(d ? d.id : '');
+      });
+    });
+    document.querySelectorAll('[data-remarks]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var d = DATA.find(function(x){ return x.id === el.dataset.remarks; });
+        state.openMenu = null; state.remarksModal = el.dataset.remarks; state.remarksDraft = d ? d.remarks : '';
+        render();
+      });
+    });
+    document.querySelectorAll('[data-download]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); var d = DATA.find(function(x){ return x.id === el.dataset.download; }); state.openMenu = null; render(); NvsChrome.toast('Downloading ' + (d ? d.receiptNo : '') + '.pdf'); });
+    });
+    document.querySelectorAll('[data-email]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); var d = DATA.find(function(x){ return x.id === el.dataset.email; }); state.openMenu = null; render(); NvsChrome.toast('Receipt emailed to ' + (d ? d.customer : '')); });
+    });
+    document.querySelectorAll('[data-page]').forEach(function(el){
+      el.addEventListener('click', function(){
+        if(el.hasAttribute('disabled')) return;
+        var v = el.dataset.page;
+        var filtered = getFiltered();
+        var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+        if(v === 'prev') state.page = Math.max(1, state.page - 1);
+        else if(v === 'next') state.page = Math.min(totalPages, state.page + 1);
+        else state.page = parseInt(v, 10);
+        render();
+      });
+    });
+    var backdrop = document.getElementById('modalBackdrop');
+    if(backdrop){
+      backdrop.addEventListener('click', function(e){ if(e.target === backdrop){ state.remarksModal = null; render(); } });
+      document.getElementById('modalCancel').addEventListener('click', function(){ state.remarksModal = null; render(); });
+      var ri = document.getElementById('remarksInput');
+      if(ri) ri.addEventListener('input', function(e){ state.remarksDraft = e.target.value; });
+      document.getElementById('modalSave').addEventListener('click', function(){
+        var d = DATA.find(function(x){ return x.id === state.remarksModal; });
+        if(d) d.remarks = state.remarksDraft;
+        state.remarksModal = null; render();
+        NvsChrome.toast('Remarks updated for ' + (d ? d.receiptNo : ''));
+      });
+    }
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('#filterToggle') && !e.target.closest('#filterPanel') && state.showFilter){ state.showFilter = false; render(); }
+    else if(state.openMenu !== null && !e.target.closest('.more-wrap')){ state.openMenu = null; render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
